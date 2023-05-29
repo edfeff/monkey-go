@@ -1,30 +1,44 @@
 package token
 
 //TokenType 类型
-// 后面可以使用int优化
 type TokenType string
 
-//Token 词法单元
-// 由类型和字面量组成
 type Token struct {
-	Type    TokenType
+	//类型
+	Type TokenType
+	//字面量
 	Literal string
 }
 
-// token 类型
+//token类型枚举
 const (
-	ILLEGAL = "ILLEGAL"
-	EOF     = "EOF"
 
-	// 标识符+字面量
-	IDENT = "IDENT" // add, foobar, x, y, ...
-	INT   = "INT"   // 1343456
+	//特殊类型
 
-	// 运算符
-	ASSIGN = "="
-	PLUS   = "+"
+	ILLEGAL = "ILLEGAL" //未知符号
+	EOF     = "EOF"     //文件结尾
 
-	// 分隔符
+	//标识符 字面量
+
+	IDENT = "IDENT" //标识符
+	INT   = "INT"   //int类型
+
+	//运算符
+
+	ASSIGN   = "="
+	PLUS     = "+"
+	MINUS    = "-"
+	BANG     = "!"
+	ASTERISK = "*"
+	SLASH    = "/"
+	LT       = "<"
+	GT       = ">"
+
+	EQ     = "=="
+	NOT_EQ = "!="
+
+	//分隔符
+
 	COMMA     = ","
 	SEMICOLON = ";"
 
@@ -33,7 +47,31 @@ const (
 	LBRACE = "{"
 	RBRACE = "}"
 
-	// 关键字
+	//关键字
+
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	RETURN   = "RETURN"
 )
+
+var keywords = map[string]TokenType{
+	"fn":     FUNCTION,
+	"let":    LET,
+	"true":   TRUE,
+	"false":  FALSE,
+	"if":     IF,
+	"else":   ELSE,
+	"return": RETURN,
+}
+
+//LookupIdent 判定是否是关键字还是标识符
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+	return IDENT
+}
