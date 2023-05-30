@@ -8,11 +8,20 @@ import (
 )
 
 type Parser struct {
-	l         *lexer.Lexer //词法分析器
-	curToken  token.Token  //当前的token
-	peekToken token.Token  //下一个即将读取的token
-	errors    []string     //解析中出现的错误
+	l      *lexer.Lexer //词法分析器
+	errors []string     //解析中出现的错误
+
+	curToken  token.Token //当前的token
+	peekToken token.Token //下一个即将读取的token
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	inParseFns     map[token.TokenType]inParseFn
 }
+
+type (
+	prefixParseFn func() ast.Expression
+	inParseFn     func(ast.Expression) ast.Expression
+)
 
 //New 创建一个解析器
 func New(l *lexer.Lexer) *Parser {
@@ -128,4 +137,12 @@ func (p *Parser) exceptPeek(t token.TokenType) bool {
 func (p *Parser) peekError(t token.TokenType) {
 	msg := fmt.Sprintf("excepted nex token to be %s, got %s instead", t, p.peekToken.Type)
 	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn inParseFn) {
+	p.inParseFns[tokenType] = fn
 }

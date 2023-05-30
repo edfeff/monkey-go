@@ -1,9 +1,13 @@
 package ast
 
-import "monkey/token"
+import (
+	"bytes"
+	"monkey/token"
+)
 
 type Node interface {
 	TokenLiteral() string //字面量
+	String() string
 }
 
 //Statement 语句（不产生值）
@@ -32,12 +36,32 @@ func (p *Program) TokenLiteral() string {
 	}
 }
 
+func (p *Program) String() string {
+	var out bytes.Buffer
+	for _, s := range p.Statements {
+		out.WriteString(s.String())
+	}
+	return out.String()
+}
+
 //LetStatement let <标识符> = <表达式> ;
 type LetStatement struct {
 	Token token.Token
 
 	Name  *Identifier //变量标识符
 	Value Expression  //产生值的表达式
+}
+
+func (l *LetStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(l.TokenLiteral() + " ")
+	out.WriteString(l.Name.String())
+	out.WriteString(" = ")
+	if l.Value != nil {
+		out.WriteString(l.Value.String())
+	}
+	out.WriteString(";")
+	return out.String()
 }
 
 func (l *LetStatement) statementNode() {
@@ -50,6 +74,10 @@ func (l *LetStatement) TokenLiteral() string {
 type Identifier struct {
 	Token token.Token
 	Value string
+}
+
+func (i *Identifier) String() string {
+	return i.Value
 }
 
 func (i *Identifier) expressionNode() {
@@ -65,8 +93,37 @@ type ReturnStatement struct {
 	ReturnValue Expression
 }
 
+func (l *ReturnStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(l.TokenLiteral() + " ")
+	if l.ReturnValue != nil {
+		out.WriteString(l.ReturnValue.String())
+	}
+	out.WriteString(";")
+	return out.String()
+}
+
 func (l *ReturnStatement) statementNode() {
 }
 func (l *ReturnStatement) TokenLiteral() string {
+	return l.Token.Literal
+}
+
+//ExpressionStatement 表达式
+type ExpressionStatement struct {
+	Token      token.Token
+	Expression Expression
+}
+
+func (l *ExpressionStatement) String() string {
+	if l.Expression != nil {
+		return l.Expression.String()
+	}
+	return ""
+}
+
+func (l *ExpressionStatement) statementNode() {
+}
+func (l *ExpressionStatement) TokenLiteral() string {
 	return l.Token.Literal
 }
