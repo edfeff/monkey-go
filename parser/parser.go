@@ -5,6 +5,18 @@ import (
 	"monkey/ast"
 	"monkey/lexer"
 	"monkey/token"
+	"strconv"
+)
+
+const (
+	_ int = iota //优先级常量定义 数值越大优先级越高
+	LOWEST
+	EQUALS      //==
+	LESSGREATER // > <
+	SUM         //+
+	PRODUCT     //*
+	PREFIX      //-X !X
+	CALL        //myFunction(X)
 )
 
 type Parser struct {
@@ -29,6 +41,15 @@ func New(l *lexer.Lexer) *Parser {
 		l:      l,
 		errors: []string{},
 	}
+	//初始化
+	// 注册前缀解析函数
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)   //处理标识符
+	p.registerPrefix(token.INT, p.parseIntegerLiteral) //处理整数
+
+	// 注册中缀解析函数
+	//p.inParseFns = make(map[token.TokenType]inParseFn)
+
 	//读取出两个token，用于初始化cur和peek
 	p.nextToken()
 	p.nextToken()
@@ -62,7 +83,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -105,6 +126,16 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
+// parseExpressionStatement 解析表达式陈故居
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+	stmt.Expression = p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
 //解析辅助方法
 
 //检查当前token类型
@@ -139,10 +170,40 @@ func (p *Parser) peekError(t token.TokenType) {
 	p.errors = append(p.errors, msg)
 }
 
+//registerPrefix 注册前缀解析函数
 func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
 
+//registerInfix 注册中缀解析函数
 func (p *Parser) registerInfix(tokenType token.TokenType, fn inParseFn) {
 	p.inParseFns[tokenType] = fn
+}
+
+//parseExpression 按照优先级解析语句
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		return nil
+	}
+	leftExp := prefix()
+	return leftExp
+}
+
+//parseIdentifier 解析标识符
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+//parseIntegerLiteral 解析整形字面量
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %s as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
 }
