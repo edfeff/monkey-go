@@ -46,6 +46,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)   //处理标识符
 	p.registerPrefix(token.INT, p.parseIntegerLiteral) //处理整数
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
 	// 注册中缀解析函数
 	//p.inParseFns = make(map[token.TokenType]inParseFn)
@@ -184,6 +186,7 @@ func (p *Parser) registerInfix(tokenType token.TokenType, fn inParseFn) {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 	leftExp := prefix()
@@ -206,4 +209,23 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	}
 	lit.Value = value
 	return lit
+}
+
+//noPrefixParseFnError 处理不能解析的token错误
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
+//parsePrefixExpression 解析前缀的表达式
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	//创建一个前缀表达式
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+	p.nextToken()
+	//递归解析出右侧的表达式
+	expression.Right = p.parseExpression(PREFIX)
+	return expression
 }
