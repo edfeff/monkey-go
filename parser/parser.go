@@ -65,6 +65,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 
 	// 注册中缀解析函数 + - * / == != > <
 	p.inParseFns = make(map[token.TokenType]inParseFn)
@@ -318,4 +319,13 @@ func (p *Parser) registerInfix(tokenType token.TokenType, fn inParseFn) {
 func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	p.nextToken() //跳过括号
+	exp := p.parseExpression(LOWEST)
+	if !p.exceptPeek(token.RPAREN) {
+		return nil
+	}
+	return exp
 }
