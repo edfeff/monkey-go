@@ -153,6 +153,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 // parseExpressionStatement 解析表达式陈故居
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	defer untrace(trace("parseExpressionStatement"))
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 	stmt.Expression = p.parseExpression(LOWEST)
 	if p.peekTokenIs(token.SEMICOLON) {
@@ -161,7 +162,106 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
+//parseExpression 按照优先级解析语句
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	defer untrace(trace("parseExpression"))
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+	leftExp := prefix()
+	//确定中缀表达式 贪心吃掉token，直到分号或者遇到高优先级的操作符
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.inParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+		p.nextToken()
+		leftExp = infix(leftExp)
+	}
+	return leftExp
+}
+
+//parseIdentifier 解析标识符
+func (p *Parser) parseIdentifier() ast.Expression {
+	//defer untrace(trace("parseIdentifier"))
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+//parseIntegerLiteral 解析整形字面量
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	defer untrace(trace("parseIntegerLiteral"))
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %s as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
+//parsePrefixExpression 解析前缀的表达式
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	defer untrace(trace("parsePrefixExpression"))
+	//创建一个前缀表达式
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+	p.nextToken()
+	//递归解析出右侧的表达式
+	expression.Right = p.parseExpression(PREFIX)
+	return expression
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	defer untrace(trace("parseInfixExpression"))
+	expression := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+
+	precedence := p.curPrecedence()
+	p.nextToken() //跳过操作符
+
+	//调整precedence 可以实现向左还是向右融合表达式
+	expression.Right = p.parseExpression(precedence)
+
+	/**
+	@test before
+	向右融合示例，遇到+号时，降低优先级，表达式则会向右融合
+	if expression.Operator == "+" {
+		expression.Right = p.parseExpression(precedence - 1)
+	} else {
+		expression.Right = p.parseExpression(precedence)
+	}
+	@test end
+	*/
+
+	return expression
+}
+
 //解析辅助方法
+
+//peekPrecedence 查看下一操作符的优先级
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+//curPrecedence 查看当前操作符的优先级
+func (p *Parser) curPrecedence() int {
+	if p, ok := precedences[p.curToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
 
 //检查当前token类型
 func (p *Parser) curTokenIs(t token.TokenType) bool {
@@ -205,102 +305,8 @@ func (p *Parser) registerInfix(tokenType token.TokenType, fn inParseFn) {
 	p.inParseFns[tokenType] = fn
 }
 
-//parseExpression 按照优先级解析语句
-func (p *Parser) parseExpression(precedence int) ast.Expression {
-	prefix := p.prefixParseFns[p.curToken.Type]
-	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type)
-		return nil
-	}
-	leftExp := prefix()
-	//确定中缀表达式 贪心吃掉token，直到分号或者遇到高优先级的操作符
-	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
-		infix := p.inParseFns[p.peekToken.Type]
-		if infix == nil {
-			return leftExp
-		}
-		p.nextToken()
-		leftExp = infix(leftExp)
-	}
-	return leftExp
-}
-
-//parseIdentifier 解析标识符
-func (p *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-}
-
-//parseIntegerLiteral 解析整形字面量
-func (p *Parser) parseIntegerLiteral() ast.Expression {
-	lit := &ast.IntegerLiteral{Token: p.curToken}
-	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-	if err != nil {
-		msg := fmt.Sprintf("could not parse %s as integer", p.curToken.Literal)
-		p.errors = append(p.errors, msg)
-		return nil
-	}
-	lit.Value = value
-	return lit
-}
-
 //noPrefixParseFnError 处理不能解析的token错误
 func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
-}
-
-//parsePrefixExpression 解析前缀的表达式
-func (p *Parser) parsePrefixExpression() ast.Expression {
-	//创建一个前缀表达式
-	expression := &ast.PrefixExpression{
-		Token:    p.curToken,
-		Operator: p.curToken.Literal,
-	}
-	p.nextToken()
-	//递归解析出右侧的表达式
-	expression.Right = p.parseExpression(PREFIX)
-	return expression
-}
-
-//peekPrecedence 查看下一操作符的优先级
-func (p *Parser) peekPrecedence() int {
-	if p, ok := precedences[p.peekToken.Type]; ok {
-		return p
-	}
-	return LOWEST
-}
-
-//curPrecedence 查看当前操作符的优先级
-func (p *Parser) curPrecedence() int {
-	if p, ok := precedences[p.curToken.Type]; ok {
-		return p
-	}
-	return LOWEST
-}
-
-func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
-	expression := &ast.InfixExpression{
-		Token:    p.curToken,
-		Operator: p.curToken.Literal,
-		Left:     left,
-	}
-
-	precedence := p.curPrecedence()
-	p.nextToken() //跳过操作符
-
-	//调整precedence 可以实现向左还是向右融合表达式
-	expression.Right = p.parseExpression(precedence)
-
-	/**
-	@test before
-	向右融合示例，遇到+号时，降低优先级，表达式则会向右融合
-	if expression.Operator == "+" {
-		expression.Right = p.parseExpression(precedence - 1)
-	} else {
-		expression.Right = p.parseExpression(precedence)
-	}
-	@test end
-	*/
-
-	return expression
 }
