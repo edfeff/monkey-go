@@ -213,7 +213,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
-	//确定中缀表达式
+	//确定中缀表达式 贪心吃掉token，直到分号或者遇到高优先级的操作符
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.inParseFns[p.peekToken.Type]
 		if infix == nil {
@@ -286,8 +286,21 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	}
 
 	precedence := p.curPrecedence()
-	p.nextToken()
+	p.nextToken() //跳过操作符
 
+	//调整precedence 可以实现向左还是向右融合表达式
 	expression.Right = p.parseExpression(precedence)
+
+	/**
+	@test before
+	向右融合示例，遇到+号时，降低优先级，表达式则会向右融合
+	if expression.Operator == "+" {
+		expression.Right = p.parseExpression(precedence - 1)
+	} else {
+		expression.Right = p.parseExpression(precedence)
+	}
+	@test end
+	*/
+
 	return expression
 }
