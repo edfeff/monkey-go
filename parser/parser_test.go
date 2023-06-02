@@ -7,11 +7,51 @@ import (
 	"testing"
 )
 
+func TestBooleanExpression(t *testing.T) {
+	tests := []struct {
+		input           string
+		expectedBoolean bool
+	}{
+		{"true;", true},
+		{"false;", false},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParseErrors(t, p)
+		if len(program.Statements) != 1 {
+			t.Fatalf("program has not enough statements. got=%d",
+				len(program.Statements))
+		}
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T",
+				program.Statements[0])
+		}
+		boolean, ok := stmt.Expression.(*ast.Boolean)
+		if !ok {
+			t.Fatalf("exp not *ast.Boolean. got=%T", stmt.Expression)
+		}
+		if boolean.Value != tt.expectedBoolean {
+			t.Errorf("boolean.Value not %t. got=%t", tt.expectedBoolean,
+				boolean.Value)
+		}
+	}
+}
+
 func TestOperatorPrecedenceParsing(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
 	}{
+		{"true;", "true"},
+		{"false;", "false"},
+		{"3 > 5 == false;", "((3 > 5) == false)"},
+		{"3 < 5 == true;", "((3 < 5) == true)"},
+		{"false;", "false"},
+		{"false;", "false"},
 		{"1 + 2 + 3", "((1 + 2) + 3)"},
 		{"-a * b", "((-a) * b)"},
 		{"!-a", "(!(-a))"},
@@ -332,7 +372,7 @@ func testInfixExpression(t *testing.T, exp ast.Expression,
 		return false
 	}
 	if opExp.Operator != operator {
-		t.Errorf("exp.Operator is not '%s'. got=%g", operator, opExp.Operator)
+		t.Errorf("exp.Operator is not '%s'. got=%s", operator, opExp.Operator)
 		return false
 	}
 	if !testLiteralExpression(t, opExp.Right, right) {

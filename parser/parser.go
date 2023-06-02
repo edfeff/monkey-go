@@ -63,6 +63,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INT, p.parseIntegerLiteral) //处理整数
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
 
 	// 注册中缀解析函数 + - * / == != > <
 	p.inParseFns = make(map[token.TokenType]inParseFn)
@@ -187,6 +189,13 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 func (p *Parser) parseIdentifier() ast.Expression {
 	//defer untrace(trace("parseIdentifier"))
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.Boolean{
+		Token: p.curToken,
+		Value: p.curTokenIs(token.TRUE),
+	}
 }
 
 //parseIntegerLiteral 解析整形字面量
