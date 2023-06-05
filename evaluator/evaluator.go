@@ -36,6 +36,9 @@ func Eval(node ast.Node) object.Object {
 		return evalIfExpression(node)
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue)
+		if isError(val) {
+			return val
+		}
 		return &object.ReturnValue{Value: val}
 	}
 
@@ -186,4 +189,11 @@ func evalBlockStatement(block *ast.BlockStatement) object.Object {
 
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
+}
+
+func isError(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.ERROR_OBJ
+	}
+	return false
 }
