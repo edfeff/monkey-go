@@ -7,6 +7,18 @@ import (
 	"testing"
 )
 
+func TestStringConcatenation(t *testing.T) {
+	input := `"Hello" + " "+"World!"`
+	evaluated := testEval(input)
+	str, ok := evaluated.(*object.String)
+	if !ok {
+		t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+	}
+	if str.Value != "Hello World!" {
+		t.Errorf("String has wrong value. got=%s", str.Value)
+	}
+}
+
 func TestStringLiteral(t *testing.T) {
 	input := `"Hello World!"`
 	evaluated := testEval(input)
@@ -103,6 +115,7 @@ if (10 > 1) {
 }
 `, "unknown operator: BOOLEAN + BOOLEAN"},
 		{"foobar", "identifier not found: foobar"},
+		{`"Hello" - "World"`, "unknown operator: STRING - STRING"},
 	}
 
 	for _, tt := range tests {
