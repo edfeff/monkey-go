@@ -96,6 +96,7 @@ if ( 5 < 10) {
 
 10 == 10;
 10 != 9;
+[1,2];
 `
 	tests := []tokenResult{
 		{token.LET, "let"},
@@ -175,6 +176,12 @@ if ( 5 < 10) {
 		{token.INT, "9"},
 		{token.SEMICOLON, ";"},
 
+		{token.LBRACKET, "["},
+		{token.INT, "1"},
+		{token.COMMA, ","},
+		{token.INT, "2"},
+		{token.RBRACKET, "]"},
+		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
 	}
 	testLexer(t, input, tests)
