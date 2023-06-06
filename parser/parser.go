@@ -69,6 +69,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
+	p.registerPrefix(token.STRING, p.parseStringLiteral)
 
 	// 注册中缀解析函数 + - * / == != > <
 	p.inParseFns = make(map[token.TokenType]inParseFn)
@@ -435,4 +436,8 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 		return nil
 	}
 	return args
+}
+
+func (p *Parser) parseStringLiteral() ast.Expression {
+	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }

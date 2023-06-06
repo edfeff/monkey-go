@@ -20,8 +20,9 @@ const (
 
 	//标识符 字面量
 
-	IDENT = "IDENT" //标识符
-	INT   = "INT"   //int类型
+	IDENT  = "IDENT" //标识符
+	INT    = "INT"   //int类型
+	STRING = "STRING"
 
 	//运算符
 

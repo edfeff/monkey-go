@@ -31,6 +31,8 @@ let add = fn(x, y) {
     x + y;
 };
 let result = add(five, ten);
+"foobar"
+"foo bar"
 `
 	tests := []tokenResult{
 		{token.LET, "let"},
@@ -69,6 +71,8 @@ let result = add(five, ten);
 		{token.IDENT, "ten"},
 		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
+		{token.STRING, "foobar"},
+		{token.STRING, "foo bar"},
 		{token.EOF, ""},
 	}
 	testLexer(t, input, tests)
