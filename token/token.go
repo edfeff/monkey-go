@@ -60,6 +60,8 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
+
+	FOR = "FOR"
 )
 
 var keywords = map[string]TokenType{
@@ -70,6 +72,7 @@ var keywords = map[string]TokenType{
 	"if":     IF,
 	"else":   ELSE,
 	"return": RETURN,
+	"for":    FOR,
 }
 
 //LookupIdent 判定是否是关键字还是标识符

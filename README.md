@@ -53,3 +53,7 @@ go build .
 ## 参考
 
 - https://monkeylang.org/
+
+## 推荐
+
+- https://github.com/skx/monkey

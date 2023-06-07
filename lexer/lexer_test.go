@@ -112,6 +112,7 @@ if ( 5 < 10) {
 10 != 9;
 [1,2];
 {"foo":"bar"}
+for
 `
 	tests := []tokenResult{
 		{token.LET, "let"},
@@ -203,6 +204,7 @@ if ( 5 < 10) {
 		{token.COLON, ":"},
 		{token.STRING, "bar"},
 		{token.RBRACE, "}"},
+		{token.FOR, "for"},
 
 		{token.EOF, ""},
 	}
