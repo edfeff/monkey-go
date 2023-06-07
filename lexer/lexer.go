@@ -49,7 +49,12 @@ func (l *Lexer) NextToken() token.Token {
 	case '*':
 		tok = newToken(token.ASTERISK, l.ch)
 	case '/':
-		tok = newToken(token.SLASH, l.ch)
+		if '/' == l.peekChar() {
+			l.skipToNexLine()
+			return l.NextToken()
+		} else {
+			tok = newToken(token.SLASH, l.ch)
+		}
 	case '!':
 		if '=' == l.peekChar() {
 			ch := l.ch
@@ -153,6 +158,11 @@ func (l *Lexer) skipWhitespace() {
 		l.readChar()
 	}
 }
+func (l *Lexer) skipToNexLine() {
+	for !isLineSep(l.ch) {
+		l.readChar()
+	}
+}
 
 //readNumber 读取数字，仅支持整数
 func (l *Lexer) readNumber() string {
@@ -177,4 +187,9 @@ func (l *Lexer) readString() string {
 //isWhitespace 是否是空白符
 func isWhitespace(ch byte) bool {
 	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
+//isWhitespace 是否是空白符
+func isLineSep(ch byte) bool {
+	return ch == '\n' || ch == '\r'
 }

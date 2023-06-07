@@ -10,6 +10,20 @@ type tokenResult struct {
 	exceptedLiteral string
 }
 
+func TestComment(t *testing.T) {
+	input := `
+//
+//注释1
+a;//注释2
+//注释3
+`
+	tests := []tokenResult{
+		{token.IDENT, "a"},
+		{token.SEMICOLON, ";"},
+		{token.EOF, ""},
+	}
+	testLexer(t, input, tests)
+}
 func TestNextToken(t *testing.T) {
 	input := `=+(){}`
 	tests := []tokenResult{
