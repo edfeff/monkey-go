@@ -11,6 +11,7 @@ import (
 const (
 	_           int = iota //优先级常量定义 数值越大优先级越高
 	LOWEST                 //最低优先级标记
+	ASSIGN                 // =
 	EQUALS                 //==
 	LESSGREATER            // > <
 	SUM                    //+
@@ -35,6 +36,8 @@ var precedences = map[token.TokenType]int{
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
+
+	token.ASSIGN: ASSIGN,
 }
 
 type Parser struct {
@@ -77,6 +80,7 @@ func New(l *lexer.Lexer) *Parser {
 
 	// 注册中缀解析函数 + - * / == != > <
 	p.inParseFns = make(map[token.TokenType]inParseFn)
+	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
@@ -502,4 +506,24 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 	}
 	return hash
 
+}
+
+func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
+	stmt := &ast.AssignStatement{Token: p.curToken}
+	if n, ok := name.(*ast.Identifier); ok {
+		stmt.Name = n
+	} else {
+		msg := fmt.Sprintf("expected assign token to be IDENT, got %s ", name.TokenLiteral())
+		p.errors = append(p.errors, msg)
+	}
+
+	operator := p.curToken
+	p.nextToken()
+
+	switch operator.Type {
+	default:
+		stmt.Operator = "="
+	}
+	stmt.Value = p.parseExpression(LOWEST)
+	return stmt
 }

@@ -400,3 +400,24 @@ func (h *HashLiteral) String() string {
 
 func (h *HashLiteral) expressionNode() {
 }
+
+type AssignStatement struct {
+	Token    token.Token
+	Name     *Identifier
+	Operator string
+	Value    Expression
+}
+
+func (as *AssignStatement) expressionNode() {}
+
+// TokenLiteral returns the literal token.
+func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
+
+// String returns this object as a string.
+func (as *AssignStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(as.Name.String())
+	out.WriteString(as.Operator)
+	out.WriteString(as.Value.String())
+	return out.String()
+}

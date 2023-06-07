@@ -92,9 +92,23 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalIndexExpression(left, index)
 	case *ast.HashLiteral:
 		return evalHashLiteral(node, env)
+	case *ast.AssignStatement:
+		return evalAssignStatement(node, env)
 	}
 
 	return nil
+}
+
+func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
+	evaluated := Eval(node.Value, env)
+	if isError(evaluated) {
+		return evaluated
+	}
+	switch node.Operator {
+	case "=":
+		env.Set(node.Name.String(), evaluated)
+	}
+	return evaluated
 }
 
 func evalHashLiteral(node *ast.HashLiteral, env *object.Environment) object.Object {
